@@ -16,7 +16,7 @@ class CoffeeTrackerTest(unittest.TestCase):
         self.tracker = CoffeeTracker(daily_limit=2)
 
     def test_add_coffee_increases_count(self):
-        """Testet, ob das Hinzufügen eines Kaffees die Anzahl erhöht."""
+        """Getestet wird ob die Eingabe den Zähler erhöht"""
         self.tracker.add_coffee(200)
         self.assertEqual(self.tracker.coffee_count(), 1)
 
@@ -51,3 +51,4 @@ class CoffeeTrackerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

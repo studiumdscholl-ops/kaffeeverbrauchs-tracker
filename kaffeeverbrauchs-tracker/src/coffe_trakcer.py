@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+from typing import Dict, List, Optional
+
+
+@dataclass(frozen=True)
+class CoffeeEntry:
+    day: date
+    amount_ml: int
+    kind: str = "coffee"  # z.B. coffee, espresso, cappuccino
+
+
+class CoffeeTracker:
+    """
+    Kernlogik für einen Kaffeeverbrauchs-Tracker.
+
+    Fokus: Erfassen von Getränken pro Tag + kleine Statistikfunktionen,
+    die später in einer App/GUI angezeigt werden könnten.
+    """
+
+    def __init__(self, daily_limit_count: int = 5) -> None:
+        if daily_limit_count < 1:
+            raise ValueError("daily_limit_count muss >= 1 sein")
+        self._daily_limit_count = daily_limit_count
+        self._entries: List[CoffeeEntry] = []
+
+    @property
+    def daily_limit_count(self) -> int:
+        return self._daily_limit_count
+
+    def add_coffee(self, amount_ml: int, day: Optional[date] = None, kind: str = "coffee") -> None:
+        """
+        Erfasst ein Kaffee-Getränk.
+
+        amount_ml: Menge in ml (muss > 0 sein)
+        day: optional, Standard = heute
+        kind: frei wählbar (z.B. espresso)
+        """
+        if amount_ml <= 0:
+            raise ValueError("amount_ml muss > 0 sein")
+        if not kind or not kind.strip():
+            raise ValueError("kind darf nicht leer sein")
+
+        entry_day = day or date.today()
+        self._entries.append(CoffeeEntry(day=entry_day, amount_ml=amount_ml, kind=kind.strip().lower()))
+
+    def entries_for_day(self, day: date) -> List[CoffeeEntry]:
+        return [e for e in self._entries if e.day == day]
+
+    def coffee_count_for_day(self, day: Optional[date] = None) -> int:
+        entry_day = day or date.today()
+        return len(self.entries_for_day(entry_day))
+
+    def total_ml_for_day(self, day: Optional[date] = None) -> int:
+        entry_day = day or date.today()
+        return sum(e.amount_ml for e in self.entries_for_day(entry_day))
+
+    def average_ml_for_day(self, day: Optional[date] = None) -> float:
+        entry_day = day or date.today()
+        entries = self.entries_for_day(entry_day)
+        if not entries:
+            return 0.0
+        return self.total_ml_for_day(entry_day) / len(entries)
+
+    def limit_exceeded_for_day(self, day: Optional[date] = None) -> bool:
+        entry_day = day or date.today()
+        return self.coffee_count_for_day(entry_day) > self._daily_limit_count
+
+    def weekly_totals_ml(self, week_start: date) -> Dict[date, int]:
+        """
+        Gibt die Gesamtsumme pro Tag für 7 Tage ab week_start zurück.
+        """
+        totals: Dict[date, int] = {}
+        for i in range(7):
+            d = date.fromordinal(week_start.toordinal() + i)
+            totals[d] = self.total_ml_for_day(d)
+        return totals
+
+    def most_common_kind_for_day(self, day: Optional[date] = None) -> Optional[str]:
+        """
+        Liefert die häufigste Kaffee-Art eines Tages (oder None, falls leer).
+        """
+        entry_day = day or date.today()
+        entries = self.entries_for_day(entry_day)
+        if not entries:
+            return None
+
+        counts: Dict[str, int] = {}
+        for e in entries:
+            counts[e.kind] = counts.get(e.kind, 0) + 1
+
+        # deterministisch: bei Gleichstand alphabetisch
+        return sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
